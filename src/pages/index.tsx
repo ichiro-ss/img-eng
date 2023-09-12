@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'https://api.openai.com/v1/';
-const API_KEY = 'my_key'
+const API_URL = 'https://api.stability.ai';
+const ENGINE_ID = 'stable-diffusion-v1-5'
+const API_KEY = 'sk-Ih4oVCubtcAmbgFpNdexJIITyoDMUvyzKswlJS6RetDyKvR6'
 
 export default function Home() {
     const title = 'ImgEng'
@@ -10,9 +11,7 @@ export default function Home() {
     const [ isLoading, setIsLoading ] = useState( false );
     const [ prompt, setPrompt ] = useState( '' );
     const [ error, setError ] = useState<string>( '' );
-    const [ format, setFormat ] = useState( 'b64_json' );
-    const [ generateSize, setGenerateSize ] = useState<string>( '512' );
-    const [ imageSize, setImageSize ] = useState<number>( 512 );
+    const [ format, setFormat ] = useState( 'base64' );
 
     const generateImage = useCallback( async () => {
         if ( !prompt ) {
@@ -25,33 +24,33 @@ export default function Home() {
 
         try {
             const response = await axios.post(
-                '${ API_URL }images/generations',
+                `${ API_URL }/v1/generation/${ ENGINE_ID }/text-to-image`,
                 {
-                    prompt,
-                    n: 1,
-                    size:generateSize,
-                    response_format: format,
+                    text_prompts: [
+                        {
+                        text: prompt,
+                        }
+                    ],
+                    steps: 30,
+                    samples: 1,
                 },
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ${ API_KEY }'
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${ API_KEY }`
                     }
                 }
             );
 
-            setImageData( response.data.data[0][ format ] );
+            setImageData( response.data.artifacts[0][ format ] );
 
         } catch( error: any ) {
             setError( error.toString() );
         } finally {
             setIsLoading(false);
         }
-    }, [ format, generateSize, prompt ] );
-
-    useEffect(() => {
-        setImageSize( Number(generateSize) );
-    }, [ generateSize ]);
+    }, [ format, prompt ] );
 
     return (
         <div className='container'>
@@ -64,20 +63,13 @@ export default function Home() {
                     setPrompt( e.target.value );
                 }}
                 />
-                <select
-                onChange={ e => setGenerateSize( e.target.value ) }
-                value={ generateSize }
-                >
-                    <option value="256">256 x 256</option>
-                    <option value="512">512 x 512</option>
-                    <option value="1024">1024 x 1024</option>
-                </select>
+
                 <select
                 onChange={ e => setFormat( e.target.value ) }
                 value={ format }
                 >
                     <option value="url">URL</option>
-                    <option value="b64_json">Base64</option>
+                    <option value="base64">Base64</option>
                 </select>
                 <button
                 onClick={ generateImage }
@@ -95,13 +87,13 @@ export default function Home() {
                 <div className='generated-image-area'>
                     <figure>
                         <img
-                        src={ format === 'b64_json'
-                        ? 'data:image/Pangolin;base64,${ imageData }'
+                        src={ format === 'base64'
+                        ? `data:image/Pangolin;base64,${ imageData }`
                         : imageData
                         }
                         alt="Received Data"
-                        width={ imageSize }
-                        height={imageSize }
+                        width={ 512 }
+                        height={512 }
                     />
                     </figure>
                     </div>
